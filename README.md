@@ -1,7 +1,7 @@
 
 
-[![codecov](https://codecov.io/gh/h4llow3En/playlist-api/branch/master/graph/badge.svg)](https://codecov.io/gh/h4llow3En/playlist-api)
+[![codecov](https://codecov.io/gh/tracktor-one/tracktor/branch/master/graph/badge.svg)](https://codecov.io/gh/tracktor-one/tracktor)
 
 
-# playlist-api
+# tracktor
 API to recieve playlist information
