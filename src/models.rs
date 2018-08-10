@@ -22,7 +22,6 @@ pub struct AmusicUrl {
 }
 
 pub struct Track {
-    uid:
     title: String,
     interpret: String,
 }
@@ -33,8 +32,9 @@ pub struct Track {
 impl SpotifyUrl {
     pub fn new(url: &str) -> APIResult<SpotifyUrl> {
         lazy_static! {
-            static ref SPOTIFY: Regex =
-                Regex::new(r"https://open.spotify.com/(?:embed/)?user/(?P<user>[^/]*)/playlist/(?P<id>.*)").unwrap();
+            static ref SPOTIFY: Regex = Regex::new(
+                r"https://open.spotify.com/(?:embed/)?user/(?P<user>[^/]+)/playlist/(?P<id>.+)"
+            ).unwrap();
         }
         ensure!(SPOTIFY.is_match(url), ValidationError::NoValidSpoityUrl);
 
@@ -43,5 +43,31 @@ impl SpotifyUrl {
             user: capture["user"].to_string(),
             id: capture["id"].to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spotify_url() {
+        let playlist = SpotifyUrl::new("https://open.spotify.com/user/marauderxtreme/playlist/6YZJnIXDOHyY0eu6PEFLUQ").unwrap();
+        assert_eq!(playlist.id, String::from("6YZJnIXDOHyY0eu6PEFLUQ"));
+        assert_eq!(playlist.user, String::from("marauderxtreme"));
+    }
+
+    #[test]
+    fn spotify_url_embedded() {
+        let playlist = SpotifyUrl::new("https://open.spotify.com/embed/user/marauderxtreme/playlist/6YZJnIXDOHyY0eu6PEFLUQ").unwrap();
+        assert_eq!(playlist.id, String::from("6YZJnIXDOHyY0eu6PEFLUQ"));
+        assert_eq!(playlist.user, String::from("marauderxtreme"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn spotify_wrong_url() {
+        let playlist = SpotifyUrl::new("https://open.spotify.com/wrong/url/pattern").unwrap();
+
     }
 }
