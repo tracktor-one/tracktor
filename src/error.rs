@@ -10,7 +10,7 @@ pub enum ValidationError {
     /// The regex could not match to a spotify url.
     #[fail(display = "No matching spotify url")]
     NoValidSpoityUrl,
-    /// The regex could not match to a spotify url.
+    /// The regex could not match to a apple music url.
     #[fail(display = "No matching apple music url")]
     NoValidAmusicUrl,
 }

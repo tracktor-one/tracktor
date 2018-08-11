@@ -11,8 +11,8 @@ extern crate failure;
 
 use actix_web::{http, server, App, Path, Responder};
 
-mod error;
-mod models;
+pub mod error;
+pub mod models;
 
 fn index(info: Path<(u32, String)>) -> impl Responder {
     format!("Hello {}! id:{}", info.1, info.0)
