@@ -1,5 +1,5 @@
 [package]
-name = "playlist-api"
+name = "tracktor"
 version = "0.1.0"
 authors = ["h4llow3En <development@felixdoering.com>"]
 
