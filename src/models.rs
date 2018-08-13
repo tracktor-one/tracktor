@@ -11,6 +11,8 @@ pub struct Playlist {
     pub id: String,
     /// Title of the playlist
     pub title: String,
+    /// The Category the playlist is listed in
+    pub category: Category,
     /// Link to Spotify
     pub spotify: SpotifyUrl,
     /// Link to Apple music
@@ -25,6 +27,7 @@ impl Playlist {
     /// Create a new Playlist instance
     pub fn new(
         title: &str,
+        category: Category,
         spotify: SpotifyUrl,
         amusic: AmusicUrl,
         tracks: Vec<Track>,
@@ -35,6 +38,7 @@ impl Playlist {
         Ok(Playlist {
             id: sha_short(&Sha1::from(title).digest().to_string()),
             title: title.to_string(),
+            category: category,
             spotify: spotify,
             amusic: amusic,
             tracks: tracks,
@@ -47,10 +51,27 @@ impl Playlist {
 pub fn sha_short(s: &str) -> String {
     s.char_indices()
         .rev()
-        .nth(10)
+        .nth(9)
         .map(|(i, _)| &s[i..])
         .unwrap()
         .to_string()
+}
+
+/// A category playlists can be sorted in.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Category {
+    id: String,
+    name: String,
+}
+
+impl Category {
+    /// Create a new category
+    pub fn new(name: &str) -> Category {
+        Category {
+            id: sha_short(&Sha1::from(name).digest().to_string()),
+            name: name.to_string(),
+        }
+    }
 }
 
 /// The SpotifyUrl is a representation of a link to a spotify playlist
@@ -153,6 +174,20 @@ impl Track {
 }
 
 #[cfg(test)]
+mod category_test {
+    use super::*;
+
+    #[test]
+    fn create_category() {
+        let category = Category::new("test_CaTeGory");
+        assert_eq!(
+            category.id,
+            sha_short(&Sha1::from("test_CaTeGory").digest().to_string())
+        );
+    }
+}
+
+#[cfg(test)]
 mod playlist_tests {
     use super::*;
     #[test]
@@ -160,6 +195,7 @@ mod playlist_tests {
         let tracks = vec![Track::new("test title", "test interpret").unwrap()];
         let playlist = Playlist::new(
             "title",
+            Category::new("test"),
             SpotifyUrl::new("https://open.spotify.com/user/marauderxtreme/playlist/6YZJnIXDOHyY0eu6PEFLUQ").unwrap(),
             AmusicUrl::new("https://itunes.apple.com/de/playlist/mafia-ii-empire-central-radio/pl.u-WBYGFvpeKLk").unwrap(),
             tracks,
@@ -169,6 +205,14 @@ mod playlist_tests {
             playlist.id,
             sha_short(&Sha1::from("title").digest().to_string())
         );
+    }
+
+    #[test]
+    fn test_sha_short() {
+        assert_eq!(
+            sha_short("abcdefghijklmnopqrstuvwxyz"),
+            String::from("qrstuvwxyz")
+        )
     }
 }
 
@@ -245,7 +289,7 @@ mod amusic_tests {
             .unwrap();
     }
 
-        #[test]
+    #[test]
     fn amusic_url_generation() {
         let playlist = AmusicUrl::new(
             "https://itunes.apple.com/de/playlist/mafia-ii-empire-central-radio/pl.u-WBYGFvpeKLk",
@@ -261,12 +305,16 @@ mod amusic_tests {
         ).unwrap();
         assert_eq!(
             playlist2.url(),
-            String::from(
-                "https://itunes.apple.com/de/playlist/pl.u-WBYGFvpeKLk"
-            )
+            String::from("https://itunes.apple.com/de/playlist/pl.u-WBYGFvpeKLk")
         );
 
-        assert_eq!(playlist.embed_url(), String::from("https://tools.applemusic.com/embed/v1/playlist/pl.u-WBYGFvpeKLk"));
-        assert_eq!(playlist2.embed_url(), String::from("https://tools.applemusic.com/embed/v1/playlist/pl.u-WBYGFvpeKLk"));
+        assert_eq!(
+            playlist.embed_url(),
+            String::from("https://tools.applemusic.com/embed/v1/playlist/pl.u-WBYGFvpeKLk")
+        );
+        assert_eq!(
+            playlist2.embed_url(),
+            String::from("https://tools.applemusic.com/embed/v1/playlist/pl.u-WBYGFvpeKLk")
+        );
     }
 }
