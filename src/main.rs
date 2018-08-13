@@ -3,11 +3,16 @@
     missing_docs, trivial_casts, trivial_numeric_casts, unused_import_braces, unused_qualifications
 )]
 extern crate actix_web;
-extern crate regex;
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate lazy_static;
+extern crate regex;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+extern crate sha1;
 
 use actix_web::{http, server, App, Path, Responder};
 

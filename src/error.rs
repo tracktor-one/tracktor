@@ -14,3 +14,17 @@ pub enum ValidationError {
     #[fail(display = "No matching apple music url")]
     NoValidAmusicUrl,
 }
+
+/// Errors that could happen on playlist creation
+#[derive(Debug, Fail)]
+pub enum PlaylistError {
+    /// This error is thrown if there is no track on playlist cration.
+    #[fail(display = "There must be at least one track in a playlist")]
+    EmptyTrack,
+    /// This error is thrown if the fiels of a track are empty.
+    #[fail(display = "There must be a title and an interpret.")]
+    EmptyTrackValue,
+    /// This error is thrown if the title of a playlist is empty
+    #[fail(display = "Title must not be empty")]
+    EmptyTitle,
+}
