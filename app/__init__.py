@@ -17,11 +17,6 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
-class Authentication:
-    USER = 'user'
-    ADMIN = 'admin'
-
-
 def authenticated(admin=False):
     def decorated_function(f):
         @jwt_required()
