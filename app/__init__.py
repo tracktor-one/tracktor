@@ -22,12 +22,12 @@ class Authentication:
     ADMIN = 'admin'
 
 
-def authenticated(role='readonly'):
+def authenticated(admin=False):
     def decorated_function(f):
         @jwt_required()
         @wraps(f)
         def decorated_inner_function(*args, **kwargs):
-            if role not in ['readonly', 'user', 'admin'][:current_identity.role.value]:
+            if current_identity.admin != admin:
                 return jsonify(error='Insufficient permission'), 403
             return f(*args, **kwargs)
 
