@@ -1,0 +1,6 @@
+werkzeug >= 2.0.0
+flask == 2.0.1
+flask_sqlalchemy >= 2.5.1
+flask_migrate >= 3.0.1
+Flask-JWT >= 0.3.2
+packaging >= 20.9
