@@ -1,4 +1,4 @@
-app.db
+*.db
 
 # User-specific stuff
 .idea/**/workspace.xml

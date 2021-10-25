@@ -1,6 +1,9 @@
-werkzeug >= 2.0.0
-flask == 2.0.1
-flask_sqlalchemy >= 2.5.1
-flask_migrate >= 3.0.1
-Flask-JWT >= 0.3.2
+fastapi~=0.70.0
 packaging >= 20.9
+pydantic~=1.8.2
+SQLAlchemy~=1.4.21
+databases~=0.5.3
+Werkzeug~=2.0.1
+aiosqlite
+
+uvicorn
