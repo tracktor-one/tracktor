@@ -1,4 +1,6 @@
-"""tracktor api"""
+"""
+Main module for tracktor api
+"""
 from fastapi import FastAPI
 
 import tracktor.sql
