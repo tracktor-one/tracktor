@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  hazel:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: hazel
+    ports:
+      - 80:80

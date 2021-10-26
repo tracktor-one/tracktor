@@ -1,12 +1,10 @@
-name: Pylint
+name: Lint
 
 on: [push]
 
 jobs:
-  build:
-
+  pylint:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
@@ -21,3 +19,11 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint $(find . -name "*.py" | xargs)
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hadolint/hadolint-action@v1.6.0
+        with:
+          dockerfile: Dockerfile
+          recursive: true
