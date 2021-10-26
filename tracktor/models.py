@@ -1,26 +1,37 @@
+"""
+Module for all models
+"""
 import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel  # pylint: disable=no-name-in-module
 from werkzeug.security import generate_password_hash
 
-from tracktor import database
+from tracktor import sql
 from tracktor.error import ItemConflictException
-from tracktor.sql import users
 
 
-class UserCreate(BaseModel):
+class UserCreate(BaseModel):  # pylint: disable=too-few-public-methods
+    """
+    Incoming model to create a user
+    """
     name: str
     password: str
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(BaseModel):  # pylint: disable=too-few-public-methods
+    """
+    Incoming model to update a user
+    """
     name: str
     admin: bool
 
 
-class UserResponse(BaseModel):
+class UserResponse(BaseModel):  # pylint: disable=too-few-public-methods
+    """
+    Cleaned user model suitable for a response
+    """
     entity_id: str
     name: str
     created_at: datetime
@@ -29,15 +40,22 @@ class UserResponse(BaseModel):
 
 
 class User(UserResponse):
+    """
+    Full populated user model
+    """
     id: int
     password: str
 
     async def update(self, name: Optional[str] = None, password: Optional[str] = None,
                      last_login: Optional[datetime] = None,
                      admin: Optional[bool] = None):
+        """
+        Updates the values of a user in the database
+        """
         changed = False
         if name:
-            check_user = await database.fetch_one(users.select().where(users.c.name == name))
+            check_user = await sql.database.fetch_one(
+                sql.users.select().where(sql.users.c.name == name))
             if check_user and check_user.get("id") != self.id:
                 raise ItemConflictException(message="Invalid username")
             self.name = name
@@ -53,14 +71,20 @@ class User(UserResponse):
             changed = True
 
         if changed:
-            query = users.update().where(users.c.id == self.id).values(**self.__dict__)
-            await database.execute(query)
+            query = sql.users.update().where(sql.users.c.id == self.id).values(**self.__dict__)
+            await sql.database.execute(query)
 
     async def delete(self):
-        await database.execute(users.delete().where(users.c.id == self.id))
+        """
+        Removes a user from the database
+        """
+        await sql.database.execute(sql.users.delete().where(sql.users.c.id == self.id))
 
     @staticmethod
     async def create(name: str, password="", admin=False) -> Optional[UserResponse]:
+        """
+        Creates a new user, saves it to the database and returns a UserResponse model
+        """
         user_uuid = str(uuid.uuid1())
         user = User(
             id=-1,
@@ -71,7 +95,7 @@ class User(UserResponse):
             last_login=None,
             admin=admin
         )
-        query = users.insert().values(
+        query = sql.users.insert().values(
             entity_id=user.entity_id,
             name=user.name,
             password=user.password,
@@ -79,15 +103,21 @@ class User(UserResponse):
             last_login=user.last_login,
             admin=user.admin
         )
-        created_id = await database.execute(query)
+        created_id = await sql.database.execute(query)
         return UserResponse(**user.__dict__) if created_id else None
 
 
-class VersionModel(BaseModel):
+class VersionModel(BaseModel):  # pylint: disable=too-few-public-methods
+    """
+    Version response model
+    """
     version: str
     changelog: str
 
 
-class Token(BaseModel):
+class Token(BaseModel):  # pylint: disable=too-few-public-methods
+    """
+    Token response model
+    """
     access_token: str
     token_type: str

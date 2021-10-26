@@ -1,8 +1,18 @@
+"""
+Module for all database operations and tables
+"""
 from datetime import datetime
 
+import databases
 import sqlalchemy
 
-from tracktor import metadata
+from tracktor.config import config
+
+database = databases.Database(config.SQLALCHEMY_DATABASE_URI)
+engine = sqlalchemy.create_engine(
+    config.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False}
+)
+metadata = sqlalchemy.MetaData()
 
 users = sqlalchemy.Table(
     "users",
@@ -15,3 +25,5 @@ users = sqlalchemy.Table(
     sqlalchemy.Column("last_login", sqlalchemy.DateTime, default=None),
     sqlalchemy.Column("admin", sqlalchemy.Boolean(), default=False)
 )
+
+metadata.create_all(engine)
