@@ -15,6 +15,9 @@ engine = create_async_engine(
 
 
 async def get_session() -> AsyncSession:
+    """
+    Return a AsyncSession suitable for Depends()
+    """
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

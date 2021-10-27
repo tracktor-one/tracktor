@@ -36,7 +36,8 @@ async def list_all_users(session: AsyncSession = Depends(get_session)):
     """
     Request to list all users
     """
-    return [UserResponse(**x.__dict__) for x in (await session.execute(select(User))).scalars().all()]
+    return [UserResponse(**x.__dict__)
+            for x in (await session.execute(select(User))).scalars().all()]
 
 
 @router.get("/user/current", response_model=UserResponse, dependencies=[Depends(current_user)])
@@ -70,7 +71,8 @@ async def create_user(new_user: UserCreate, session: AsyncSession = Depends(get_
 @router.put("/user/{user_id}",
             response_model=UserResponse,
             dependencies=[Depends(admin_required)])
-async def update_user(user_id: str, updated_user: UserUpdate, session: AsyncSession = Depends(get_session)):
+async def update_user(user_id: str, updated_user: UserUpdate,
+                      session: AsyncSession = Depends(get_session)):
     """
     Request to update a given user
     """
@@ -82,7 +84,8 @@ async def update_user(user_id: str, updated_user: UserUpdate, session: AsyncSess
 
 
 @router.get("/reset/master")
-async def reset_admin_password(token: Optional[str] = None, session: AsyncSession = Depends(get_session)):
+async def reset_admin_password(token: Optional[str] = None,
+                               session: AsyncSession = Depends(get_session)):
     """
     Request to reset the admin password
     """

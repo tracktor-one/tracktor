@@ -26,7 +26,8 @@ async def get_user_by_entity_id(entity_id: str, session: AsyncSession) -> Option
     """
     Returns a user with the given entity_id
     """
-    return (await session.execute(select(User).where(User.entity_id == entity_id))).scalars().first()
+    return (await session.execute(select(User).where(User.entity_id == entity_id)))\
+        .scalars().first()
 
 
 async def get_super_admin(session: AsyncSession):
@@ -52,7 +53,8 @@ async def decode_token(token, session: AsyncSession):
                                     headers={"WWW-Authenticate": "Bearer"}) from err
 
 
-async def current_user(token: str = Depends(config.OAUTH2_SCHEME), session: AsyncSession = Depends(get_session)):
+async def current_user(token: str = Depends(config.OAUTH2_SCHEME),
+                       session: AsyncSession = Depends(get_session)):
     """
     Returns the current user
     """

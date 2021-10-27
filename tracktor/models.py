@@ -49,7 +49,8 @@ class User(UserResponse, table=True):
     created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
     password: str
 
-    async def update(self, session: AsyncSession, name: Optional[str] = None, password: Optional[str] = None,
+    async def update(self, session: AsyncSession,   # pylint: disable=too-many-arguments
+                     name: Optional[str] = None, password: Optional[str] = None,
                      last_login: Optional[datetime] = None,
                      admin: Optional[bool] = None):
         """
@@ -57,7 +58,8 @@ class User(UserResponse, table=True):
         """
         changed = False
         if name:
-            check_user: User = (await session.execute(select(User).where(User.name == name))).scalars().first()
+            check_user: User = (await session.execute(select(User).where(User.name == name)))\
+                .scalars().first()
             if check_user and check_user.id != self.id:
                 raise ItemConflictException(message="Invalid username")
             self.name = name
@@ -87,7 +89,8 @@ class User(UserResponse, table=True):
         await session.commit()
 
     @staticmethod
-    async def create(session: AsyncSession, name: str, password="", admin=False) -> Optional[UserResponse]:
+    async def create(session: AsyncSession,
+                     name: str, password="", admin=False) -> Optional[UserResponse]:
         """
         Creates a new user, saves it to the database and returns a UserResponse model
         """
@@ -111,6 +114,9 @@ class CategoryResponse(SQLModel):  # pylint: disable=too-few-public-methods
 
 
 class Category(CategoryResponse, table=True):
+    """
+    Full populated category model
+    """
     id: int = Field(default=None, primary_key=True)
 
 
