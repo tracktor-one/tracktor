@@ -18,7 +18,10 @@ class Config:  # pylint: disable=too-few-public-methods
     ALGORITHM = "HS256"
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
-        default="sqlite:///" + os.path.join(basedir, "../tracktor.db"))
+        default="sqlite+aiosqlite:///" + os.path.join(basedir, "../tracktor.db"))
+    # TODO: fix this to check correctly
+    #       fix mysql -> wont connect correctly
+    SQL_DEBUG = True if os.environ.get("SQL_DEBUG") else False
     ADMIN_USER = os.environ.get("ADMIN_USER", default="admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", default="password")
     ACCESS_TOKEN_EXPIRE_MINUTES = 30

@@ -1,10 +1,13 @@
 fastapi~=0.70.0
 packaging >= 20.9
-pydantic~=1.8.2
 SQLAlchemy~=1.4.21
-databases~=0.5.3
-Werkzeug~=2.0.1
+sqlmodel~=0.0.4
+asyncpg~=0.24.0
+asyncmy~=0.2.3
+PyMySQL~=1.0.2
 aiosqlite~=0.17.0
+alembic~=1.7.4
+Werkzeug~=2.0.1
 python-multipart~=0.0.5
 python-jose[cryptography]
 

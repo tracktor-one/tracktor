@@ -6,44 +6,44 @@ from typing import Optional
 
 from fastapi import Depends
 from jose import jwt, JWTError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from tracktor.config import config
 from tracktor.error import UnauthorizedException, ForbiddenException
 from tracktor.models import User
-from tracktor.sql import users, database
+from tracktor.utils.database import get_session
 
 
-async def get_user(username: str) -> Optional[User]:
+async def get_user(username: str, session: AsyncSession) -> Optional[User]:
     """
     Returns a user with the given username
     """
-    if check_user := await database.fetch_one(users.select().where(users.c.name == username)):
-        return User(**check_user)
+    return (await session.execute(select(User).where(User.name == username))).scalars().first()
 
 
-async def get_user_by_entity_id(entity_id: str) -> Optional[User]:
+async def get_user_by_entity_id(entity_id: str, session: AsyncSession) -> Optional[User]:
     """
     Returns a user with the given entity_id
     """
-    if check_user := await database.fetch_one(users.select().where(users.c.entity_id == entity_id)):
-        return User(**check_user)
+    return (await session.execute(select(User).where(User.entity_id == entity_id))).scalars().first()
 
 
-async def get_super_admin():
+async def get_super_admin(session: AsyncSession):
     """
     Returns the admin user with id 1
     """
-    return User(**await database.fetch_one(users.select().where(users.c.id == 1)))
+    return (await session.execute(select(User).where(User.id == 1))).scalars().first()
 
 
-async def decode_token(token):
+async def decode_token(token, session: AsyncSession):
     """
     Decodes a given JWT token to return the correct user
     """
     try:
         payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
         if user_id := payload.get("sub"):
-            if user := await get_user_by_entity_id(user_id):
+            if user := await get_user_by_entity_id(user_id, session):
                 return user
         raise UnauthorizedException(message="Could not validate credentials",
                                     headers={"WWW-Authenticate": "Bearer"})
@@ -52,11 +52,11 @@ async def decode_token(token):
                                     headers={"WWW-Authenticate": "Bearer"}) from err
 
 
-async def current_user(token: str = Depends(config.OAUTH2_SCHEME)):
+async def current_user(token: str = Depends(config.OAUTH2_SCHEME), session: AsyncSession = Depends(get_session)):
     """
     Returns the current user
     """
-    return await decode_token(token)
+    return await decode_token(token, session)
 
 
 def create_token(data: dict, expires_delta: Optional[timedelta] = None):

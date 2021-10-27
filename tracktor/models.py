@@ -3,16 +3,17 @@ Module for all models
 """
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlmodel import SQLModel, Field
 from werkzeug.security import generate_password_hash
 
-from tracktor import sql
 from tracktor.error import ItemConflictException
 
 
-class UserCreate(BaseModel):  # pylint: disable=too-few-public-methods
+class UserCreate(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Incoming model to create a user
     """
@@ -20,7 +21,7 @@ class UserCreate(BaseModel):  # pylint: disable=too-few-public-methods
     password: str
 
 
-class UserUpdate(BaseModel):  # pylint: disable=too-few-public-methods
+class UserUpdate(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Incoming model to update a user
     """
@@ -28,7 +29,7 @@ class UserUpdate(BaseModel):  # pylint: disable=too-few-public-methods
     admin: bool
 
 
-class UserResponse(BaseModel):  # pylint: disable=too-few-public-methods
+class UserResponse(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Cleaned user model suitable for a response
     """
@@ -39,14 +40,16 @@ class UserResponse(BaseModel):  # pylint: disable=too-few-public-methods
     admin: bool
 
 
-class User(UserResponse):
+class User(UserResponse, table=True):
     """
     Full populated user model
     """
-    id: int
+    id: int = Field(default=None, primary_key=True)
+    entity_id: str = Field(default=str(uuid.uuid1()), nullable=False)
+    created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
     password: str
 
-    async def update(self, name: Optional[str] = None, password: Optional[str] = None,
+    async def update(self, session: AsyncSession, name: Optional[str] = None, password: Optional[str] = None,
                      last_login: Optional[datetime] = None,
                      admin: Optional[bool] = None):
         """
@@ -54,9 +57,8 @@ class User(UserResponse):
         """
         changed = False
         if name:
-            check_user = await sql.database.fetch_one(
-                sql.users.select().where(sql.users.c.name == name))
-            if check_user and check_user.get("id") != self.id:
+            check_user: User = (await session.execute(select(User).where(User.name == name))).scalars().first()
+            if check_user and check_user.id != self.id:
                 raise ItemConflictException(message="Invalid username")
             self.name = name
             changed = True
@@ -71,43 +73,48 @@ class User(UserResponse):
             changed = True
 
         if changed:
-            query = sql.users.update().where(sql.users.c.id == self.id).values(**self.__dict__)
-            await sql.database.execute(query)
+            session.add(self)
+            await session.commit()
+            await session.refresh(self)
 
-    async def delete(self):
+        return self
+
+    async def delete(self, session: AsyncSession):
         """
         Removes a user from the database
         """
-        await sql.database.execute(sql.users.delete().where(sql.users.c.id == self.id))
+        await session.delete(self)
+        await session.commit()
 
     @staticmethod
-    async def create(name: str, password="", admin=False) -> Optional[UserResponse]:
+    async def create(session: AsyncSession, name: str, password="", admin=False) -> Optional[UserResponse]:
         """
         Creates a new user, saves it to the database and returns a UserResponse model
         """
-        user_uuid = str(uuid.uuid1())
         user = User(
-            id=-1,
-            entity_id=user_uuid,
             name=name,
             password=generate_password_hash(password) if password else None,
-            created_at=datetime.utcnow(),
-            last_login=None,
             admin=admin
         )
-        query = sql.users.insert().values(
-            entity_id=user.entity_id,
-            name=user.name,
-            password=user.password,
-            created_at=user.created_at,
-            last_login=user.last_login,
-            admin=user.admin
-        )
-        created_id = await sql.database.execute(query)
-        return UserResponse(**user.__dict__) if created_id else None
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return UserResponse(**user.__dict__)
 
 
-class VersionModel(BaseModel):  # pylint: disable=too-few-public-methods
+class CategoryResponse(SQLModel):  # pylint: disable=too-few-public-methods
+    """
+    Cleaned category model suitable for a response
+    """
+    name: str
+    playlists: List[str]
+
+
+class Category(CategoryResponse, table=True):
+    id: int = Field(default=None, primary_key=True)
+
+
+class VersionModel(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Version response model
     """
@@ -115,7 +122,7 @@ class VersionModel(BaseModel):  # pylint: disable=too-few-public-methods
     changelog: str
 
 
-class Token(BaseModel):  # pylint: disable=too-few-public-methods
+class Token(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Token response model
     """
