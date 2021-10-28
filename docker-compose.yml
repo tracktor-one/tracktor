@@ -13,13 +13,21 @@ services:
     ports:
       - 80:80
     environment:
-      - DATABASE_URL=mysql+asyncmy:///tracktor:tracktor@database:3306/tracktor
-#      - DATABASE_URL=postgresql+asyncpg:///tracktor:tracktor@database:5432/tracktor
+      # FOR SQLITE
+      # - DATABASE_TYPE=sqlite
+      # - DATABASE_PATH=/
+
+      - DATABASE_TYPE=mysql
+      # - DATABASE_TYPE=postgresql
+      - DATABASE_USER=tracktor
+      - DATABASE_PASS=tracktor
+      - DATABASE_HOST=database
+      - DATABASE_NAME=tracktor
 
   database:
     image: mariadb:10
     environment:
-      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_RANDOM_ROOT_PASSWORD=1
       - MYSQL_USER=tracktor
       - MYSQL_PASSWORD=tracktor
       - MYSQL_DATABASE=tracktor

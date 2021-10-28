@@ -1,19 +1,20 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlmodel import SQLModel
 
-from alembic import context
+from tracktor.config import config as tc
 
+# This import is needed to generate metadata for SQLModels
 from tracktor.models import User, Category
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-from tracktor.config import config as tc
 config.set_main_option('sqlalchemy.url', tc.SQLALCHEMY_DATABASE_URI)
 
 # Interpret the config file for Python logging.
@@ -25,6 +26,7 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

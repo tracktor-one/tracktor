@@ -8,7 +8,6 @@ from tracktor.config import config
 
 engine = create_async_engine(
     config.SQLALCHEMY_DATABASE_URI,
-    connect_args={"check_same_thread": False},
     echo=config.SQL_DEBUG,
     future=True
 )
