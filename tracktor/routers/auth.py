@@ -1,19 +1,27 @@
+"""
+Module for auth router
+
+Contains functions and api endpoints for authentication
+"""
 from datetime import datetime, timedelta
 
 from fastapi import Depends, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
+from werkzeug.security import check_password_hash
 
-from tracktor import config
+from tracktor.config import config
 from tracktor.error import BadRequestException
 from tracktor.models import Token
 from tracktor.utils.auth import get_user, create_token
-from werkzeug.security import check_password_hash
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Request to login
+    """
     user = await get_user(form_data.username)
     if not user or not check_password_hash(user.password, form_data.password):
         raise BadRequestException(message="Incorrect username or password")

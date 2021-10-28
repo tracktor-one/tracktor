@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  tracktor:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: tracktor
+    networks:
+      - backend
+    ports:
+      - 80:80
+    environment:
+      - SQLALCHEMY_DATABASE_URI='mysql://tracktor:test@mysql:3306/test'
+
+  mysql:
+    image: mariadb:10
+    environment:
+      - MYSQL_ROOT_PASSWORD=test
+      - MYSQL_USER=tracktor
+      - MYSQL_PASSWORD=test
+      - MYSQL_DATABASE=test
+    networks:
+      - backend
+
+networks:
+  backend:
