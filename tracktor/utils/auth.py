@@ -19,15 +19,24 @@ async def get_user(username: str, session: AsyncSession) -> Optional[User]:
     """
     Returns a user with the given username
     """
-    return (await session.execute(select(User).where(User.name == username))).scalars().first()
+    return (
+        (await session.execute(select(User).where(User.name == username)))
+        .scalars()
+        .first()
+    )
 
 
-async def get_user_by_entity_id(entity_id: str, session: AsyncSession) -> Optional[User]:
+async def get_user_by_entity_id(
+    entity_id: str, session: AsyncSession
+) -> Optional[User]:
     """
     Returns a user with the given entity_id
     """
-    return (await session.execute(select(User).where(User.entity_id == entity_id)))\
-        .scalars().first()
+    return (
+        (await session.execute(select(User).where(User.entity_id == entity_id)))
+        .scalars()
+        .first()
+    )
 
 
 async def get_super_admin(session: AsyncSession):
@@ -46,15 +55,21 @@ async def decode_token(token, session: AsyncSession):
         if user_id := payload.get("sub"):
             if user := await get_user_by_entity_id(user_id, session):
                 return user
-        raise UnauthorizedException(message="Could not validate credentials",
-                                    headers={"WWW-Authenticate": "Bearer"})
+        raise UnauthorizedException(
+            message="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError as err:
-        raise UnauthorizedException(message="Could not validate credentials",
-                                    headers={"WWW-Authenticate": "Bearer"}) from err
+        raise UnauthorizedException(
+            message="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from err
 
 
-async def current_user(token: str = Depends(config.OAUTH2_SCHEME),
-                       session: AsyncSession = Depends(get_session)):
+async def current_user(
+    token: str = Depends(config.OAUTH2_SCHEME),
+    session: AsyncSession = Depends(get_session),
+):
     """
     Returns the current user
     """
