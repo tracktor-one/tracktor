@@ -6,6 +6,16 @@ from typing import Optional, Dict, Any
 from fastapi import HTTPException, status
 
 
+class DatabaseConstructionError(Exception):
+    """
+    Error if no Database url can not be build
+    """
+
+    def __init__(self, message=""):
+        self.message = message
+        super().__init__()
+
+
 class ApiError(HTTPException):
     """
     Base exception for all exceptions which could occur in the routers
