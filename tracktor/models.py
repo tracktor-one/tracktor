@@ -17,6 +17,7 @@ class UserCreate(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Incoming model to create a user
     """
+
     name: str
     password: str
 
@@ -25,6 +26,7 @@ class UserUpdate(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Incoming model to update a user
     """
+
     name: str
     admin: bool
 
@@ -33,6 +35,7 @@ class UserResponse(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Cleaned user model suitable for a response
     """
+
     entity_id: str
     name: str
     created_at: datetime
@@ -44,22 +47,30 @@ class User(UserResponse, table=True):
     """
     Full populated user model
     """
+
     id: int = Field(default=None, primary_key=True)
     entity_id: str = Field(default=str(uuid.uuid1()), nullable=False)
     created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
     password: str
 
-    async def update(self, session: AsyncSession,   # pylint: disable=too-many-arguments
-                     name: Optional[str] = None, password: Optional[str] = None,
-                     last_login: Optional[datetime] = None,
-                     admin: Optional[bool] = None):
+    async def update(  # pylint: disable=too-many-arguments
+        self,
+        session: AsyncSession,
+        name: Optional[str] = None,
+        password: Optional[str] = None,
+        last_login: Optional[datetime] = None,
+        admin: Optional[bool] = None,
+    ):
         """
         Updates the values of a user in the database
         """
         changed = False
         if name:
-            check_user: User = (await session.execute(select(User).where(User.name == name)))\
-                .scalars().first()
+            check_user: User = (
+                (await session.execute(select(User).where(User.name == name)))
+                .scalars()
+                .first()
+            )
             if check_user and check_user.id != self.id:
                 raise ItemConflictException(message="Invalid username")
             self.name = name
@@ -89,15 +100,16 @@ class User(UserResponse, table=True):
         await session.commit()
 
     @staticmethod
-    async def create(session: AsyncSession,
-                     name: str, password="", admin=False) -> Optional[UserResponse]:
+    async def create(
+        session: AsyncSession, name: str, password="", admin=False
+    ) -> Optional[UserResponse]:
         """
         Creates a new user, saves it to the database and returns a UserResponse model
         """
         user = User(
             name=name,
             password=generate_password_hash(password) if password else None,
-            admin=admin
+            admin=admin,
         )
         session.add(user)
         await session.commit()
@@ -109,6 +121,7 @@ class CategoryResponse(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Cleaned category model suitable for a response
     """
+
     name: str
     playlists: List[str]
 
@@ -117,6 +130,7 @@ class Category(CategoryResponse, table=True):
     """
     Full populated category model
     """
+
     id: int = Field(default=None, primary_key=True)
 
 
@@ -124,6 +138,7 @@ class VersionModel(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Version response model
     """
+
     version: str
     changelog: str
 
@@ -132,5 +147,6 @@ class Token(SQLModel):  # pylint: disable=too-few-public-methods
     """
     Token response model
     """
+
     access_token: str
     token_type: str

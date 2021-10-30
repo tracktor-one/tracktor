@@ -21,15 +21,20 @@ router = APIRouter(tags=["auth"])
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(),
-                session: AsyncSession = Depends(get_session)):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_session),
+):
     """
     Request to login
     """
     if not (await session.execute(select(User))).scalars().all():
-        await User.create(name=config.ADMIN_USER,
-                          password=config.ADMIN_PASSWORD,
-                          admin=True, session=session)
+        await User.create(
+            name=config.ADMIN_USER,
+            password=config.ADMIN_PASSWORD,
+            admin=True,
+            session=session,
+        )
     user = await get_user(form_data.username, session)
     if not user or not check_password_hash(user.password, form_data.password):
         raise BadRequestException(message="Incorrect username or password")
