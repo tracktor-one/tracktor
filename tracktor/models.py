@@ -53,9 +53,9 @@ class User(UserResponse, table=True):
     created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
     password: str
 
-    async def update(
+    async def update(  # pylint: disable=too-many-arguments
         self,
-        session: AsyncSession,  # pylint: disable=too-many-arguments
+        session: AsyncSession,
         name: Optional[str] = None,
         password: Optional[str] = None,
         last_login: Optional[datetime] = None,

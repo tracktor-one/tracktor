@@ -140,7 +140,8 @@ async def reset_admin_password(
     await admin.update(password=config.ADMIN_PASSWORD)
     ADMIN_PASSWORD_RESET = None
     return {
-        "message": f"Admin password is now set to: '{config.ADMIN_PASSWORD}' Change this immediately"
+        "message": "Admin password is now set to: '"
+        + f"{config.ADMIN_PASSWORD}' Change this immediately"
     }
 
 
