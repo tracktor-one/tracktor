@@ -87,7 +87,7 @@ async def create_user(
     """
     if await get_user(new_user.name, session):
         raise ItemConflictException(message="User already exists")
-    return await User.create(session, **new_user.__dict__)
+    return UserResponse(**(await User.create(session, **new_user.__dict__)).__dict__)
 
 
 @router.put(

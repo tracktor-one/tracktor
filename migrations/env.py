@@ -10,12 +10,12 @@ from sqlmodel import SQLModel
 from tracktor.config import config as tc
 
 # This import is needed to generate metadata for SQLModels
-from tracktor.models import User, Category
+from tracktor.models import User, Category, Playlist, PlaylistItemLink, Item
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option('sqlalchemy.url', tc.SQLALCHEMY_DATABASE_URI)
+config.set_main_option("sqlalchemy.url", tc.SQLALCHEMY_DATABASE_URI)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
