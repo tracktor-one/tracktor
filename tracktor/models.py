@@ -100,7 +100,9 @@ class User(UserResponse, table=True):
         await session.commit()
 
     @staticmethod
-    async def create(session: AsyncSession, name: str, password="", admin=False):
+    async def create(
+        session: AsyncSession, name: str, password="", admin=False
+    ) -> "User":
         """
         Creates a new user and saves it to the database
         """
@@ -113,6 +115,46 @@ class User(UserResponse, table=True):
         await session.commit()
         await session.refresh(user)
         return user
+
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["User"]:
+        """
+        Returns all existing users
+        """
+        return (await session.execute(select(User))).scalars().all()
+
+    @staticmethod
+    async def get_by_username(username: str, session: AsyncSession) -> Optional["User"]:
+        """
+        Returns a user with the given username
+        """
+        return (
+            (await session.execute(select(User).where(User.name == username)))
+            .scalars()
+            .first()
+        )
+
+    @staticmethod
+    async def get_by_entity_id(
+        entity_id: str, session: AsyncSession
+    ) -> Optional["User"]:
+        """
+        Returns a user with the given entity_id
+        """
+        return (
+            (await session.execute(select(User).where(User.entity_id == entity_id)))
+            .scalars()
+            .first()
+        )
+
+    @staticmethod
+    async def get_super_admin(session: AsyncSession):
+        """
+        Returns the admin user with id 1
+        """
+        return (
+            (await session.execute(select(User).where(User.id == 1))).scalars().first()
+        )
 
 
 class CategoryResponse(SQLModel):  # pylint: disable=too-few-public-methods
@@ -132,7 +174,7 @@ class Category(CategoryResponse, table=True):
     id: int = Field(default=None, primary_key=True)
 
     @staticmethod
-    async def create(session: AsyncSession, name: str):
+    async def create(session: AsyncSession, name: str) -> "Category":
         """
         Creates a playlist item and saves it or returns an existing one
         """
@@ -149,6 +191,24 @@ class Category(CategoryResponse, table=True):
         await session.commit()
         await session.refresh(category)
         return category
+
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["Category"]:
+        """
+        Returns all existing categories
+        """
+        return (await session.execute(select(Category))).scalars().all()
+
+    @staticmethod
+    async def get_by_name(name: str, session: AsyncSession) -> Optional["Category"]:
+        """
+        Returns a category with the given name
+        """
+        return (
+            (await session.execute(select(Category).where(Category.name == name)))
+            .scalars()
+            .first()
+        )
 
 
 class VersionModel(SQLModel):  # pylint: disable=too-few-public-methods
@@ -202,7 +262,7 @@ class Item(ItemResponse, table=True):
     )
 
     @staticmethod
-    async def create(session: AsyncSession, title: str, artist: str):
+    async def create(session: AsyncSession, title: str, artist: str) -> "Item":
         """
         Creates a playlist item and saves it or returns an existing one
         """
@@ -221,6 +281,13 @@ class Item(ItemResponse, table=True):
         await session.commit()
         await session.refresh(item)
         return item
+
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["Item"]:
+        """
+        Returns all existing items
+        """
+        return (await session.execute(select(Item))).scalars().all()
 
 
 class PlaylistResponse(SQLModel):
@@ -261,7 +328,7 @@ class Playlist(PlaylistResponse, table=True):
         image: Optional[str] = None,
         category: Optional[Category] = None,
         release_date: Optional[datetime] = None,
-    ):
+    ) -> "Playlist":
         """
         Creates a playlist and saves it
         """
@@ -284,3 +351,27 @@ class Playlist(PlaylistResponse, table=True):
         await session.commit()
         await session.refresh(playlist)
         return playlist
+
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["Playlist"]:
+        """
+        Returns all existing playlists
+        """
+        return (await session.execute(select(Playlist))).scalars().all()
+
+    @staticmethod
+    async def get_by_entity_id(
+        entity_id: str, session: AsyncSession
+    ) -> Optional["Playlist"]:
+        """
+        Returns a playlist with the given entity_id
+        """
+        return (
+            (
+                await session.execute(
+                    select(Playlist).where(Playlist.entity_id == entity_id)
+                )
+            )
+            .scalars()
+            .first()
+        )
