@@ -52,6 +52,9 @@ class Config:  # pylint: disable=too-few-public-methods
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     OAUTH2_SCHEME = OAuth2PasswordBearer(tokenUrl="login")
     CORS_DOMAIN = os.environ.get("CORS_DOMAIN", default=None)
+    PLAYLIST_PATH = os.environ.get(
+            "PLAYLIST_PATH", default=os.path.join(basedir, "../tests/yaml")
+        )
 
 
 config = Config()
