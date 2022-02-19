@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tracktor.error import ItemNotFoundException
-from tracktor.models import PlaylistResponse, ItemResponse, Playlist
+from tracktor.models import PlaylistResponse, Playlist, ItemBase
 from tracktor.utils.database import get_session
 
 router = APIRouter(prefix="/playlist")
@@ -31,7 +31,7 @@ async def get_playlist(playlist_id: str, session: AsyncSession = Depends(get_ses
     raise ItemNotFoundException(message=f"No playlist fount with id {playlist_id}")
 
 
-@router.get("/{playlist_id}/tracks", response_model=List[ItemResponse])
+@router.get("/{playlist_id}/tracks", response_model=List[ItemBase])
 async def get_playlist_items_of_playlist(
     playlist_id: str, session: AsyncSession = Depends(get_session)
 ):
@@ -39,5 +39,5 @@ async def get_playlist_items_of_playlist(
     Request to return all items of a playlist
     """
     if playlist := await Playlist.get_by_entity_id(playlist_id, session):
-        return [ItemResponse(**x.__dict__) for x in playlist.items]
+        return [ItemBase(**x.__dict__) for x in playlist.items]
     raise ItemNotFoundException(message=f"No playlist fount with id {playlist_id}")

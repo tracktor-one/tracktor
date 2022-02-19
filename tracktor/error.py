@@ -50,7 +50,7 @@ class BadRequestException(ApiError):
     """
 
     def __init__(
-            self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
+        self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(
             message=message if message else "Bad Request",
@@ -65,7 +65,7 @@ class UnauthorizedException(ApiError):
     """
 
     def __init__(
-            self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
+        self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(
             message=message if message else "Unauthorized",
@@ -80,7 +80,7 @@ class ForbiddenException(ApiError):
     """
 
     def __init__(
-            self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
+        self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(
             message=message if message else "Forbidden",
@@ -95,7 +95,7 @@ class ItemNotFoundException(ApiError):
     """
 
     def __init__(
-            self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
+        self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(
             message=message if message else "Not Found",
@@ -110,7 +110,7 @@ class ItemConflictException(ApiError):
     """
 
     def __init__(
-            self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
+        self, message: Optional[str] = None, headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(
             message=message if message else "Conflict",

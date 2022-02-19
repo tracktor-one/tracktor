@@ -21,7 +21,7 @@ async def get_all_categories(session: AsyncSession = Depends(get_session)):
     return [CategoryResponse(**x.__dict__) for x in await Category.get_all(session)]
 
 
-@router.get("/{category_name}", response_model=List[CategoryResponse])
+@router.get("/{category_name}", response_model=CategoryResponse)
 async def get_category(
     category_name: str, session: AsyncSession = Depends(get_session)
 ):

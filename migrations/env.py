@@ -10,7 +10,7 @@ from sqlmodel import SQLModel
 from tracktor.config import config as tc
 
 # This import is needed to generate metadata for SQLModels
-from tracktor.models import User, Category, Playlist, PlaylistItemLink, Item
+from tracktor.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

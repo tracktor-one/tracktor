@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from tracktor.config import config
 from tracktor.routers import admin, auth, version, v1
+from tracktor.utils.parser import parse_playlists
 
 app = FastAPI()
 
@@ -22,3 +23,11 @@ app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(version.router)
 app.include_router(v1.router)
+
+
+@app.on_event("startup")
+async def startup():
+    """
+    Run on application startup
+    """
+    await parse_playlists()
