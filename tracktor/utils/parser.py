@@ -15,9 +15,11 @@ from tracktor.models import Category, Playlist, ItemBase
 from tracktor.utils.database import get_sync_session
 
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader
+    # from yaml import CDumper as Dumper
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader
+    # from yaml import Dumper
 
 
 async def parse_categories() -> Dict[str, Category]:
@@ -55,7 +57,7 @@ async def parse_playlists() -> List[Playlist]:
             p for p in os.listdir(category_path) if p.endswith((".yml", ".yaml"))
         ]
         for playlist in yaml_to_import:
-            with open(os.path.join(category_path, playlist)) as playlist_file:
+            with open(os.path.join(category_path, playlist), encoding='utf-8') as playlist_file:
                 content = yaml.load(playlist_file, Loader)
                 content["items"] = [ItemBase(**x) for x in content["items"]]
                 content["category"] = category

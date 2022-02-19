@@ -71,7 +71,7 @@ class User(UserResponse, UserCreate, table=True):
         """
         changed = False
         if name:
-            check_user: User = (
+            check_user = (
                 (await session.execute(select(User).where(User.name == name)))
                 .scalars()
                 .first()
