@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from tracktor.config import config
 from tracktor.routers import admin, auth, version, v1
-from tracktor.utils.parser import parse_playlists
+from tracktor.utils.parser import parse_playlists, dump_playlists
 
 app = FastAPI()
 
@@ -31,3 +31,11 @@ async def startup():
     Run on application startup
     """
     await parse_playlists()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    """
+    Run on application startup
+    """
+    await dump_playlists()

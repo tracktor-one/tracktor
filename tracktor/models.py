@@ -162,6 +162,14 @@ class User(UserResponse, UserCreate, table=True):
         )
 
 
+class BaseImage(SQLModel):
+    """
+    Base image model for playlists
+    """
+
+    entity_id: str
+
+
 class PlaylistBase(SQLModel):
     """
     Base playlist model
@@ -186,6 +194,16 @@ class CategoryBase(SQLModel):  # pylint: disable=too-few-public-methods
     """
 
     name: str
+
+
+class Image(BaseImage, table=True):
+    """
+    Full populated image model
+    """
+
+    entity_id = Field(default=str(uuid.uuid4()), primary_key=True)
+    image: str
+    playlists: List["Playlist"] = Relationship(back_populates="image")
 
 
 class CategoryResponse(CategoryBase):
@@ -234,13 +252,17 @@ class Category(CategoryBase, table=True):
         return category
 
     @staticmethod
-    async def get_all(session: AsyncSession) -> List["Category"]:
+    async def get_all(session: Session) -> List["Category"]:
         """
         Returns all existing categories
         """
         return (
             (
                 await session.execute(
+                    select(Category).options(selectinload(Category.playlists))
+                )
+                if isinstance(session, AsyncSession)
+                else session.execute(
                     select(Category).options(selectinload(Category.playlists))
                 )
             )
@@ -364,7 +386,7 @@ class PlaylistExtendedBase(PlaylistBase):
     spotify: Optional[str]
     amazon: Optional[str]
     apple_music: Optional[str]
-    image: Optional[str] = None
+    image: Optional[BaseImage]
     release_date: Optional[datetime]
 
 
@@ -375,6 +397,12 @@ class PlaylistResponse(PlaylistExtendedBase):
 
     items: List[ItemBase]
     category: Optional[CategoryBase]
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self.image = (
+            BaseImage(**data.get("image").__dict__) if data.get("image") else None
+        )
 
 
 class Playlist(PlaylistExtendedBase, table=True):
@@ -390,6 +418,9 @@ class Playlist(PlaylistExtendedBase, table=True):
     category: Optional[Category] = Relationship(back_populates="playlists")
     category_id: Optional[int] = Field(default=None, foreign_key="category.id")
 
+    image: Optional[Image] = Relationship(back_populates="playlists")
+    image_id: Optional[uuid.UUID] = Field(default=None, foreign_key="image.entity_id")
+
     @staticmethod
     async def create(  # pylint: disable=too-many-arguments
         session: Session,
@@ -398,7 +429,7 @@ class Playlist(PlaylistExtendedBase, table=True):
         amazon: Optional[str] = None,
         apple_music: Optional[str] = None,
         items: List[ItemResponse] = None,
-        image: Optional[str] = None,
+        image: Optional[Image] = None,
         category: Optional[Category] = None,
         release_date: Optional[datetime] = None,
     ) -> "Playlist":
@@ -416,12 +447,7 @@ class Playlist(PlaylistExtendedBase, table=True):
         )
         if not playlist:
             playlist = Playlist(
-                name=name,
-                spotify=spotify,
-                amazon=amazon,
-                apple_music=apple_music,
-                image=image,
-                release_date=release_date,
+                name=name, spotify=spotify, amazon=amazon, apple_music=apple_music
             )
             session.add(playlist)
             if isinstance(session, AsyncSession):
@@ -431,8 +457,9 @@ class Playlist(PlaylistExtendedBase, table=True):
                 session.commit()
                 session.refresh(playlist)
         playlist.items = [await Item.create(session, **x.__dict__) for x in items]
-        if category:
-            playlist.category_id = category.id
+        playlist.category_id = category.id if category else None
+        playlist.image_id = image.entity_id if image else None
+        playlist.release_date = release_date if release_date else None
 
         session.add(playlist)
         if isinstance(session, AsyncSession):
@@ -444,7 +471,7 @@ class Playlist(PlaylistExtendedBase, table=True):
         return playlist
 
     @staticmethod
-    async def get_all(session: AsyncSession) -> List["Playlist"]:
+    async def get_all(session: Session) -> List["Playlist"]:
         """
         Returns all existing playlists
         """
@@ -452,7 +479,17 @@ class Playlist(PlaylistExtendedBase, table=True):
             (
                 await session.execute(
                     select(Playlist).options(
-                        selectinload(Playlist.items), selectinload(Playlist.category)
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
+                    )
+                )
+                if isinstance(session, AsyncSession)
+                else session.execute(
+                    select(Playlist).options(
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
                     )
                 )
             )
@@ -472,7 +509,11 @@ class Playlist(PlaylistExtendedBase, table=True):
                 await session.execute(
                     select(Playlist)
                     .where(Playlist.entity_id == entity_id)
-                    .options(selectinload(Playlist.items))
+                    .options(
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
+                    )
                 )
             )
             .scalars()
