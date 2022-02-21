@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from tracktor.config import config
 from tracktor.routers import admin, auth, version, v1
-from tracktor.utils.parser import parse_playlists, dump_playlists
+from tracktor.utils.exporter import dump_playlists
+from tracktor.utils.importer import parse_playlists
+
 
 app = FastAPI()
 

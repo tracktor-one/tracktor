@@ -1,7 +1,7 @@
 *.db
 tests/yaml/**/*.yml
 tests/yaml/**/*.yaml
-!tests/yaml/default/playlist.yml
+tests/yaml/**/*.png
 
 # User-specific stuff
 .idea/**/workspace.xml

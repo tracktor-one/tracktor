@@ -1,24 +1,25 @@
 """
 Module for parsing yaml files in filestructure for import and export them
 """
+import base64
 import datetime
 import os
+from datetime import datetime
 from typing import Dict, List
 
 import yaml
 from sqlalchemy import select
 from sqlmodel import Session
-from datetime import datetime
 
 from tracktor.config import config
-from tracktor.error import PlaylistImportError, PlaylistExportError
-from tracktor.models import Category, Playlist, ItemBase
+from tracktor.error import PlaylistImportError
+from tracktor.models import Category, Playlist, ItemBase, Image
 from tracktor.utils.database import get_sync_session
 
 try:
-    from yaml import CLoader as Loader, Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader
 
 
 async def parse_categories(session: Session) -> Dict[str, Category]:
@@ -60,56 +61,21 @@ async def parse_playlists() -> List[Playlist]:
                 os.path.join(category_path, playlist), encoding="utf-8"
             ) as playlist_file:
                 content = yaml.load(playlist_file, Loader)
-                content["items"] = [ItemBase(**x) for x in content["items"]]
+
+                content["items"] = [ItemBase(**x) for x in content.get("items", [])]
                 content["category"] = category
                 if content.get("release_date"):
                     content["release_date"] = datetime.strptime(
                         content["release_date"], "%Y-%m-%d %H:%M"
                     )
+                if content.get("image"):
+                    with open(
+                        os.path.join(category_path, content["image"]), "rb"
+                    ) as image_file:
+                        content["image"] = await Image.create(
+                            session,
+                            content["image"],
+                            base64.b64encode(image_file.read()),
+                        )
                 playlists.append(await Playlist.create(session, **content))
     return playlists
-
-
-async def dump_categories(session: Session) -> List[Category]:
-    """ "
-    Create directories for all categories
-    """
-    categories: List[Category] = await Category.get_all(session)
-    for category in categories:
-        os.makedirs(os.path.join(config.PLAYLIST_PATH, category.name), exist_ok=True)
-    return categories
-
-
-async def dump_playlists():
-    """ "
-    Dump all playlists existing into yaml files in the corresponding categories
-    """
-    session: Session = next(get_sync_session())
-    exported_categories = await dump_categories(session)
-    all_playlists = await Playlist.get_all(session)
-    for playlist in all_playlists:
-        if playlist.category not in exported_categories:
-            raise PlaylistExportError(message="")
-        playlist_dump = {
-            "items": [{"title": x.title, "artist": x.artist} for x in playlist.items],
-            "name": playlist.name,
-        }
-        if playlist.spotify:
-            playlist_dump["spotify"] = playlist.spotify
-        if playlist.amazon:
-            playlist_dump["amazon"] = playlist.amazon
-        if playlist.apple_music:
-            playlist_dump["apple_music"] = playlist.apple_music
-        if playlist.release_date:
-            playlist_dump["release_date"] = playlist.release_date.strftime(
-                "%Y-%m-%d %H:%M"
-            )
-        # TODO: Add image to dump
-        with open(
-            os.path.join(
-                config.PLAYLIST_PATH, playlist.category.name, playlist.name + ".yml"
-            ),
-            "w",
-            encoding="utf-8",
-        ) as playlist_file:
-            yaml.dump(playlist_dump, playlist_file, Dumper)

@@ -1,10 +1,13 @@
 """
 Module for all models
 """
+import base64
 import uuid
 from datetime import datetime
 from typing import Optional, List, Any
 
+import magic
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -201,9 +204,46 @@ class Image(BaseImage, table=True):
     Full populated image model
     """
 
-    entity_id = Field(default=str(uuid.uuid4()), primary_key=True)
+    __table_args__ = (
+        UniqueConstraint("image"),
+        UniqueConstraint("file_name"),
+    )
+    id: int = Field(default=None, primary_key=True)
+    entity_id = Field(default=str(uuid.uuid4()))
     image: str
     playlists: List["Playlist"] = Relationship(back_populates="image")
+    file_name: str = Field()
+    mime_type: str
+
+    @staticmethod
+    async def create(session: Session, file_name: str, b64data: str) -> "Image":
+        """
+        Creates a playlist item and saves it or returns an existing one
+        """
+        image = (
+            (
+                await session.execute(select(Image).where(Image.file_name == file_name))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(Image).where(Image.file_name == file_name))
+            )
+            .scalars()
+            .first()
+        )
+        if not image:
+            image = Image(file_name=file_name)
+        image.image = b64data
+        image.mime_type = magic.Magic(mime=True, uncompress=True).from_buffer(
+            base64.b64decode(b64data)
+        )
+
+        session.add(image)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(image)
+        else:
+            session.commit()
+            session.refresh(image)
+        return image
 
 
 class CategoryResponse(CategoryBase):
@@ -419,7 +459,7 @@ class Playlist(PlaylistExtendedBase, table=True):
     category_id: Optional[int] = Field(default=None, foreign_key="category.id")
 
     image: Optional[Image] = Relationship(back_populates="playlists")
-    image_id: Optional[uuid.UUID] = Field(default=None, foreign_key="image.entity_id")
+    image_id: Optional[int] = Field(default=None, foreign_key="image.id")
 
     @staticmethod
     async def create(  # pylint: disable=too-many-arguments
@@ -458,7 +498,7 @@ class Playlist(PlaylistExtendedBase, table=True):
                 session.refresh(playlist)
         playlist.items = [await Item.create(session, **x.__dict__) for x in items]
         playlist.category_id = category.id if category else None
-        playlist.image_id = image.entity_id if image else None
+        playlist.image_id = image.id if image else None
         playlist.release_date = release_date if release_date else None
 
         session.add(playlist)
