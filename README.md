@@ -19,7 +19,8 @@ To reduce redundant information an API is the easiest way to get them.
 1. Clone this Repository
 2. Install GraphicsMagic (e.g. `apt-get install g++ libgraphicsmagick++1-dev libboost-python-dev`)
 3. Create a venv or simply run `pip install -r requirements.txt`
-4. Run `uvicorn tracktor:main --reload`
+4. Run `alembic upgrade head` to apply migrations or create sqlite database
+5. Run `uvicorn tracktor:app --reload`
 
 ## API Endpoints and Models
 
