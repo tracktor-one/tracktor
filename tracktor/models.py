@@ -165,7 +165,7 @@ class User(UserResponse, UserCreate, table=True):
         )
 
 
-class BaseImage(SQLModel):
+class ImageBase(SQLModel):
     """
     Base image model for playlists
     """
@@ -199,7 +199,7 @@ class CategoryBase(SQLModel):  # pylint: disable=too-few-public-methods
     name: str
 
 
-class Image(BaseImage, table=True):
+class Image(ImageBase, table=True):
     """
     Full populated image model
     """
@@ -244,6 +244,24 @@ class Image(BaseImage, table=True):
             session.commit()
             session.refresh(image)
         return image
+
+    @staticmethod
+    async def get_by_entity_id(
+            entity_id: str, session: AsyncSession
+    ) -> Optional["Image"]:
+        """
+        Returns an image with the given entity_id
+        """
+        return (
+            (
+                await session.execute(
+                    select(Image)
+                        .where(Image.entity_id == entity_id)
+                )
+            )
+                .scalars()
+                .first()
+        )
 
 
 class CategoryResponse(CategoryBase):
@@ -426,7 +444,7 @@ class PlaylistExtendedBase(PlaylistBase):
     spotify: Optional[str]
     amazon: Optional[str]
     apple_music: Optional[str]
-    image: Optional[BaseImage]
+    image: Optional[ImageBase]
     release_date: Optional[datetime]
 
 
@@ -441,7 +459,7 @@ class PlaylistResponse(PlaylistExtendedBase):
     def __init__(self, **data: Any):
         super().__init__(**data)
         self.image = (
-            BaseImage(**data.get("image").__dict__) if data.get("image") else None
+            ImageBase(**data.get("image").__dict__) if data.get("image") else None
         )
 
 
