@@ -18,8 +18,9 @@ supported_dbs = {
 def _get_database_uri():
     db_type = os.environ.get("DATABASE_TYPE", default="sqlite").lower()
     if (
-        db_type not in supported_dbs.keys()
-    ):  # pylint: disable=consider-iterating-dictionary
+        db_type
+        not in supported_dbs.keys()  # pylint: disable=consider-iterating-dictionary
+    ):
         raise DatabaseConstructionError("Unsupported database detected")
     if db_type == "sqlite":
         db_path = "/" + os.environ.get(
