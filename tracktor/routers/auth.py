@@ -14,7 +14,7 @@ from werkzeug.security import check_password_hash
 from tracktor.config import config
 from tracktor.error import BadRequestException
 from tracktor.models import Token, User
-from tracktor.utils.auth import get_user, create_token
+from tracktor.utils.auth import create_token
 from tracktor.utils.database import get_session
 
 router = APIRouter(tags=["auth"])
@@ -35,7 +35,7 @@ async def login(
             admin=True,
             session=session,
         )
-    user = await get_user(form_data.username, session)
+    user = await User.get_by_username(form_data.username, session)
     if not user or not check_password_hash(user.password, form_data.password):
         raise BadRequestException(message="Incorrect username or password")
     await user.update(session, last_login=datetime.utcnow())

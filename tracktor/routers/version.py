@@ -12,7 +12,7 @@ from fastapi import APIRouter
 from tracktor.error import ItemNotFoundException
 from tracktor.models import VersionModel
 
-router = APIRouter(prefix="/versions", tags=["version"])
+router = APIRouter(prefix="/version", tags=["version"])
 
 
 def _get_versions() -> List[VersionModel]:

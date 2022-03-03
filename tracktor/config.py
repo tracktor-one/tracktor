@@ -17,7 +17,10 @@ supported_dbs = {
 
 def _get_database_uri():
     db_type = os.environ.get("DATABASE_TYPE", default="sqlite").lower()
-    if db_type not in supported_dbs.keys():
+    if (
+        db_type
+        not in supported_dbs.keys()  # pylint: disable=consider-iterating-dictionary
+    ):
         raise DatabaseConstructionError("Unsupported database detected")
     if db_type == "sqlite":
         db_path = "/" + os.environ.get(
@@ -52,6 +55,9 @@ class Config:  # pylint: disable=too-few-public-methods
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     OAUTH2_SCHEME = OAuth2PasswordBearer(tokenUrl="login")
     CORS_DOMAIN = os.environ.get("CORS_DOMAIN", default=None)
+    PLAYLIST_PATH = os.environ.get(
+        "PLAYLIST_PATH", default=os.path.join(basedir, "../tests/yaml")
+    )
 
 
 config = Config()

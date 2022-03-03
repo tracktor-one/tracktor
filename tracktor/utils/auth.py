@@ -7,43 +7,11 @@ from typing import Optional
 from fastapi import Depends
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from tracktor.config import config
 from tracktor.error import UnauthorizedException, ForbiddenException
 from tracktor.models import User
 from tracktor.utils.database import get_session
-
-
-async def get_user(username: str, session: AsyncSession) -> Optional[User]:
-    """
-    Returns a user with the given username
-    """
-    return (
-        (await session.execute(select(User).where(User.name == username)))
-        .scalars()
-        .first()
-    )
-
-
-async def get_user_by_entity_id(
-    entity_id: str, session: AsyncSession
-) -> Optional[User]:
-    """
-    Returns a user with the given entity_id
-    """
-    return (
-        (await session.execute(select(User).where(User.entity_id == entity_id)))
-        .scalars()
-        .first()
-    )
-
-
-async def get_super_admin(session: AsyncSession):
-    """
-    Returns the admin user with id 1
-    """
-    return (await session.execute(select(User).where(User.id == 1))).scalars().first()
 
 
 async def decode_token(token, session: AsyncSession):
@@ -53,7 +21,7 @@ async def decode_token(token, session: AsyncSession):
     try:
         payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
         if user_id := payload.get("sub"):
-            if user := await get_user_by_entity_id(user_id, session):
+            if user := await User.get_by_entity_id(user_id, session):
                 return user
         raise UnauthorizedException(
             message="Could not validate credentials",

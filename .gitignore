@@ -1,4 +1,7 @@
 *.db
+tests/yaml/**/*.yml
+tests/yaml/**/*.yaml
+tests/yaml/**/*.png
 
 # User-specific stuff
 .idea/**/workspace.xml

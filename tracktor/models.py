@@ -1,57 +1,65 @@
 """
 Module for all models
 """
+import base64
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
+import magic
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.orm.session import Session
 from werkzeug.security import generate_password_hash
 
 from tracktor.error import ItemConflictException
 
 
-class UserCreate(SQLModel):  # pylint: disable=too-few-public-methods
+class UserBase(SQLModel):  # pylint: disable=too-few-public-methods
+    """
+    Base user model
+    """
+
+    name: str
+
+
+class UserCreate(UserBase):  # pylint: disable=too-few-public-methods
     """
     Incoming model to create a user
     """
 
-    name: str
     password: str
 
 
-class UserUpdate(SQLModel):  # pylint: disable=too-few-public-methods
+class UserUpdate(UserBase):  # pylint: disable=too-few-public-methods
     """
     Incoming model to update a user
     """
 
-    name: str
     admin: bool
 
 
-class UserResponse(SQLModel):  # pylint: disable=too-few-public-methods
+class UserResponse(UserUpdate):  # pylint: disable=too-few-public-methods
     """
     Cleaned user model suitable for a response
     """
 
     entity_id: str
-    name: str
     created_at: datetime
     last_login: Optional[datetime]
-    admin: bool
 
 
-class User(UserResponse, table=True):
+class User(UserResponse, UserCreate, table=True):
     """
     Full populated user model
     """
 
     id: int = Field(default=None, primary_key=True)
-    entity_id: str = Field(default=str(uuid.uuid1()), nullable=False)
+    entity_id: str = Field(default=str(uuid.uuid4()), nullable=False)
     created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
-    password: str
 
     async def update(  # pylint: disable=too-many-arguments
         self,
@@ -66,7 +74,7 @@ class User(UserResponse, table=True):
         """
         changed = False
         if name:
-            check_user: User = (
+            check_user = (
                 (await session.execute(select(User).where(User.name == name)))
                 .scalars()
                 .first()
@@ -100,7 +108,7 @@ class User(UserResponse, table=True):
         await session.commit()
 
     @staticmethod
-    async def create(session: AsyncSession, name: str, password="", admin=False):
+    async def create(session: Session, name: str, password="", admin=False) -> "User":
         """
         Creates a new user and saves it to the database
         """
@@ -110,35 +118,185 @@ class User(UserResponse, table=True):
             admin=admin,
         )
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(user)
+        else:
+            session.commit()
+            session.refresh(user)
         return user
 
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["User"]:
+        """
+        Returns all existing users
+        """
+        return (await session.execute(select(User))).scalars().all()
 
-class CategoryResponse(SQLModel):  # pylint: disable=too-few-public-methods
+    @staticmethod
+    async def get_by_username(username: str, session: AsyncSession) -> Optional["User"]:
+        """
+        Returns a user with the given username
+        """
+        return (
+            (await session.execute(select(User).where(User.name == username)))
+            .scalars()
+            .first()
+        )
+
+    @staticmethod
+    async def get_by_entity_id(
+        entity_id: str, session: AsyncSession
+    ) -> Optional["User"]:
+        """
+        Returns a user with the given entity_id
+        """
+        return (
+            (await session.execute(select(User).where(User.entity_id == entity_id)))
+            .scalars()
+            .first()
+        )
+
+    @staticmethod
+    async def get_super_admin(session: Session):
+        """
+        Returns the admin user with id 1
+        """
+        return (
+            (
+                await session.execute(select(User).where(User.id == 1))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(User).where(User.id == 1))
+            )
+            .scalars()
+            .first()
+        )
+
+
+class ImageBase(SQLModel):
     """
-    Cleaned category model suitable for a response
+    Base image model for playlists
+    """
+
+    entity_id: str
+
+
+class PlaylistBase(SQLModel):
+    """
+    Base playlist model
+    """
+
+    entity_id: str
+    name: str
+
+
+class ItemBase(SQLModel):
+    """
+    Base item model
+    """
+
+    title: str
+    artist: str
+
+
+class CategoryBase(SQLModel):  # pylint: disable=too-few-public-methods
+    """
+    Base category model
     """
 
     name: str
-    playlists: List["Playlist"] = Relationship(back_populates="category")
 
 
-class Category(CategoryResponse, table=True):
+class Image(ImageBase, table=True):
+    """
+    Full populated image model
+    """
+
+    __table_args__ = (
+        UniqueConstraint("image"),
+        UniqueConstraint("file_name"),
+    )
+    id: int = Field(default=None, primary_key=True)
+    entity_id = Field(default=str(uuid.uuid4()))
+    image: str
+    playlists: List["Playlist"] = Relationship(back_populates="image")
+    file_name: str = Field()
+    mime_type: str
+
+    @staticmethod
+    async def create(session: Session, file_name: str, b64data: str) -> "Image":
+        """
+        Creates a playlist item and saves it or returns an existing one
+        """
+        image = (
+            (
+                await session.execute(select(Image).where(Image.file_name == file_name))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(Image).where(Image.file_name == file_name))
+            )
+            .scalars()
+            .first()
+        )
+        if not image:
+            image = Image(file_name=file_name)
+        image.image = b64data
+        image.mime_type = magic.Magic(mime=True, uncompress=True).from_buffer(
+            base64.b64decode(b64data)
+        )
+
+        session.add(image)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(image)
+        else:
+            session.commit()
+            session.refresh(image)
+        return image
+
+    @staticmethod
+    async def get_by_entity_id(
+        entity_id: str, session: AsyncSession
+    ) -> Optional["Image"]:
+        """
+        Returns an image with the given entity_id
+        """
+        return (
+            (await session.execute(select(Image).where(Image.entity_id == entity_id)))
+            .scalars()
+            .first()
+        )
+
+
+class CategoryResponse(CategoryBase):
+    """
+    Cleaned Category model for responses
+    """
+
+    playlists: List[PlaylistBase]
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self.playlists = [PlaylistBase(**x.__dict__) for x in data.get("playlists")]
+
+
+class Category(CategoryBase, table=True):
     """
     Full populated category model
     """
 
     id: int = Field(default=None, primary_key=True)
+    playlists: List["Playlist"] = Relationship(back_populates="category")
 
     @staticmethod
-    async def create(session: AsyncSession, name: str):
+    async def create(session: Session, name: str) -> "Category":
         """
         Creates a playlist item and saves it or returns an existing one
         """
         if (
             category := (
                 await session.execute(select(Category).where(Category.name == name))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(Category).where(Category.name == name))
             )
             .scalars()
             .first()
@@ -146,9 +304,49 @@ class Category(CategoryResponse, table=True):
             return category
         category = Category(name=name)
         session.add(category)
-        await session.commit()
-        await session.refresh(category)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(category)
+        else:
+            session.commit()
+            session.refresh(category)
         return category
+
+    @staticmethod
+    async def get_all(session: Session) -> List["Category"]:
+        """
+        Returns all existing categories
+        """
+        return (
+            (
+                await session.execute(
+                    select(Category).options(selectinload(Category.playlists))
+                )
+                if isinstance(session, AsyncSession)
+                else session.execute(
+                    select(Category).options(selectinload(Category.playlists))
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    @staticmethod
+    async def get_by_name(name: str, session: AsyncSession) -> Optional["Category"]:
+        """
+        Returns a category with the given name
+        """
+        return (
+            (
+                await session.execute(
+                    select(Category)
+                    .where(Category.name == name)
+                    .options(selectinload(Category.playlists))
+                )
+            )
+            .scalars()
+            .first()
+        )
 
 
 class VersionModel(SQLModel):  # pylint: disable=too-few-public-methods
@@ -182,16 +380,19 @@ class PlaylistItemLink(SQLModel, table=True):
     )
 
 
-class ItemResponse(SQLModel):
+class ItemResponse(ItemBase):
     """
     Cleaned playlist item model suitable for a response
     """
 
-    title: str
-    artist: str
+    playlists: List[PlaylistBase]
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self.playlists = [PlaylistBase(**x.__dict__) for x in data.get("playlists")]
 
 
-class Item(ItemResponse, table=True):
+class Item(ItemBase, table=True):
     """
     Full populated item model
     """
@@ -202,15 +403,15 @@ class Item(ItemResponse, table=True):
     )
 
     @staticmethod
-    async def create(session: AsyncSession, title: str, artist: str):
+    async def create(session: Session, title: str, artist: str) -> "Item":
         """
         Creates a playlist item and saves it or returns an existing one
         """
         if (
             item := (
-                await session.execute(
-                    select(Item).where(Item.title == title, Item.artist == artist)
-                )
+                await session.execute(select(Item).where(Item.title == title))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(Item).where(Item.title == title))
             )
             .scalars()
             .first()
@@ -218,69 +419,164 @@ class Item(ItemResponse, table=True):
             return item
         item = Item(title=title, artist=artist)
         session.add(item)
-        await session.commit()
-        await session.refresh(item)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(item)
+        else:
+            session.commit()
+            session.refresh(item)
         return item
 
+    @staticmethod
+    async def get_all(session: AsyncSession) -> List["Item"]:
+        """
+        Returns all existing items
+        """
+        return (
+            (await session.execute(select(Item).options(selectinload(Item.playlists))))
+            .scalars()
+            .all()
+        )
 
-class PlaylistResponse(SQLModel):
+
+class PlaylistExtendedBase(PlaylistBase):
     """
     Cleaned playlist model suitable for a response
     """
 
-    entity_id: str
-    name: str
     spotify: Optional[str]
     amazon: Optional[str]
     apple_music: Optional[str]
-    items: List[ItemResponse]
-    image: Optional[str] = None
-    category: Optional[Category] = Relationship(back_populates="playlists")
+    image: Optional[ImageBase]
     release_date: Optional[datetime]
 
 
-class Playlist(PlaylistResponse, table=True):
+class PlaylistResponse(PlaylistExtendedBase):
+    """
+    Cleaned playlist model suitable for a response
+    """
+
+    items: List[ItemBase]
+    category: Optional[CategoryBase]
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self.image = (
+            ImageBase(**data.get("image").__dict__) if data.get("image") else None
+        )
+
+
+class Playlist(PlaylistExtendedBase, table=True):
     """
     Full populated playlist model
     """
 
     id: int = Field(default=None, primary_key=True)
+    entity_id: str = Field(default=str(uuid.uuid4()), nullable=False)
     items: List[Item] = Relationship(
         back_populates="playlists", link_model=PlaylistItemLink
     )
+    category: Optional[Category] = Relationship(back_populates="playlists")
     category_id: Optional[int] = Field(default=None, foreign_key="category.id")
+
+    image: Optional[Image] = Relationship(back_populates="playlists")
+    image_id: Optional[int] = Field(default=None, foreign_key="image.id")
 
     @staticmethod
     async def create(  # pylint: disable=too-many-arguments
-        session: AsyncSession,
+        session: Session,
         name: str,
         spotify: Optional[str] = None,
         amazon: Optional[str] = None,
         apple_music: Optional[str] = None,
         items: List[ItemResponse] = None,
-        image: Optional[str] = None,
+        image: Optional[Image] = None,
         category: Optional[Category] = None,
         release_date: Optional[datetime] = None,
-    ):
+    ) -> "Playlist":
         """
         Creates a playlist and saves it
         """
-        playlist = Playlist(
-            name=name,
-            spotify=spotify,
-            amazon=amazon,
-            apple_music=apple_music,
-            image=image,
-            release_date=release_date,
+        playlist = (
+            (
+                await session.execute(select(Playlist).where(Playlist.name == name))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(Playlist).where(Playlist.name == name))
+            )
+            .scalars()
+            .first()
         )
-        session.add(playlist)
-        await session.commit()
-        await session.refresh(playlist)
-        playlist.items = [Item.create(session, **x.__dict__) for x in items]
-        if category:
-            playlist.category = category
+        if not playlist:
+            playlist = Playlist(
+                name=name, spotify=spotify, amazon=amazon, apple_music=apple_music
+            )
+            session.add(playlist)
+            if isinstance(session, AsyncSession):
+                await session.commit()
+                await session.refresh(playlist)
+            else:
+                session.commit()
+                session.refresh(playlist)
+        playlist.items = [await Item.create(session, **x.__dict__) for x in items]
+        playlist.category_id = category.id if category else None
+        playlist.image_id = image.id if image else None
+        playlist.release_date = release_date if release_date else None
 
         session.add(playlist)
-        await session.commit()
-        await session.refresh(playlist)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(playlist)
+        else:
+            session.commit()
+            session.refresh(playlist)
         return playlist
+
+    @staticmethod
+    async def get_all(session: Session) -> List["Playlist"]:
+        """
+        Returns all existing playlists
+        """
+        return (
+            (
+                await session.execute(
+                    select(Playlist).options(
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
+                    )
+                )
+                if isinstance(session, AsyncSession)
+                else session.execute(
+                    select(Playlist).options(
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    @staticmethod
+    async def get_by_entity_id(
+        entity_id: str, session: AsyncSession
+    ) -> Optional["Playlist"]:
+        """
+        Returns a playlist with the given entity_id
+        """
+        return (
+            (
+                await session.execute(
+                    select(Playlist)
+                    .where(Playlist.entity_id == entity_id)
+                    .options(
+                        selectinload(Playlist.items),
+                        selectinload(Playlist.category),
+                        selectinload(Playlist.image),
+                    )
+                )
+            )
+            .scalars()
+            .first()
+        )

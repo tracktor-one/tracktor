@@ -11,7 +11,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, status
 from fastapi.logger import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from tracktor.config import config
 from tracktor.error import (
@@ -24,10 +23,7 @@ from tracktor.error import (
 from tracktor.models import User, UserResponse, UserCreate, UserUpdate
 from tracktor.utils.auth import (
     current_user,
-    get_user,
     admin_required,
-    get_user_by_entity_id,
-    get_super_admin,
 )
 from tracktor.utils.database import get_session
 
@@ -46,10 +42,7 @@ async def list_all_users(session: AsyncSession = Depends(get_session)):
     """
     Request to list all users
     """
-    return [
-        UserResponse(**x.__dict__)
-        for x in (await session.execute(select(User))).scalars().all()
-    ]
+    return [UserResponse(**x.__dict__) for x in await User.get_all(session)]
 
 
 @router.get(
@@ -71,7 +64,7 @@ async def get_single_user(user_id: str, session: AsyncSession = Depends(get_sess
     """
     Request to return a single user
     """
-    if single_user := await get_user_by_entity_id(user_id, session):
+    if single_user := await User.get_by_entity_id(user_id, session):
         return UserResponse(**single_user.__dict__)
     raise ItemNotFoundException(message="User not found")
 
@@ -85,7 +78,7 @@ async def create_user(
     """
     Request to create a user
     """
-    if await get_user(new_user.name, session):
+    if await User.get_by_username(new_user.name, session):
         raise ItemConflictException(message="User already exists")
     return UserResponse(**(await User.create(session, **new_user.__dict__)).__dict__)
 
@@ -101,7 +94,7 @@ async def update_user(
     """
     Request to update a given user
     """
-    if user := await get_user_by_entity_id(user_id, session):
+    if user := await User.get_by_entity_id(user_id, session):
         if user.id == 1:
             raise ForbiddenException(message="Operation not permitted")
         return UserResponse(
@@ -136,7 +129,7 @@ async def reset_admin_password(
         raise UnauthorizedException(
             message="Invalid reset token. A new token has been generated"
         )
-    admin = await get_super_admin(session)
+    admin = await User.get_super_admin(session)
     await admin.update(password=config.ADMIN_PASSWORD)
     ADMIN_PASSWORD_RESET = None
     return {
@@ -165,7 +158,7 @@ async def change_password(
             message="The password must have at least 8 characters,"
             + " including a digit, a lowercase, an uppercase and a special character"
         )
-    if user := await get_user(new_password.name, session):
+    if user := await User.get_by_username(new_password.name, session):
         return await user.update(session, password=new_password.password)
     raise ItemNotFoundException(message="User not found")
 
@@ -186,7 +179,7 @@ async def remove_user(
     if user_id == request_user.entity_id:
         raise ItemConflictException(message="User can not be deleted by same user")
 
-    delete_user = await get_user_by_entity_id(user_id, session)
+    delete_user = await User.get_by_entity_id(user_id, session)
     if not delete_user:
         raise ItemNotFoundException(message="User not found")
     if delete_user.id == 1:

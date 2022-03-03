@@ -16,6 +16,26 @@ class DatabaseConstructionError(Exception):
         super().__init__()
 
 
+class PlaylistImportError(Exception):
+    """
+    Error if playlist path does not exists or something else fails
+    """
+
+    def __init__(self, message=""):
+        self.message = message
+        super().__init__()
+
+
+class PlaylistExportError(Exception):
+    """
+    Error if playlist category does not exists in filesystem or something else fails
+    """
+
+    def __init__(self, message=""):
+        self.message = message
+        super().__init__()
+
+
 class ApiError(HTTPException):
     """
     Base exception for all exceptions which could occur in the routers

@@ -13,30 +13,19 @@ services:
     ports:
       - 80:80
     environment:
-      # FOR SQLITE
-      # - DATABASE_TYPE=sqlite
-      # - DATABASE_PATH=/
+      - DATABASE_TYPE=sqlite
+      - DATABASE_PATH=/opt/tracktor/data/tracktor.db
 
-      - DATABASE_TYPE=mysql
-      # - DATABASE_TYPE=postgresql
-      - DATABASE_USER=tracktor
-      - DATABASE_PASS=tracktor
-      - DATABASE_HOST=database
-      - DATABASE_NAME=tracktor
+#      FOR POSTGRES
+#      - DATABASE_TYPE=postgresql
+#      - DATABASE_USER=tracktor
+#      - DATABASE_PASS=tracktor
+#      - DATABASE_HOST=database
+#      - DATABASE_NAME=tracktor
+    volumes:
+      - ./data:/opt/tracktor/data
 
-  database:
-    image: mariadb:10
-    environment:
-      - MYSQL_RANDOM_ROOT_PASSWORD=1
-      - MYSQL_USER=tracktor
-      - MYSQL_PASSWORD=tracktor
-      - MYSQL_DATABASE=tracktor
-    networks:
-      - backend
-
-#  EXAMPLE FOR POSTGRES
 #  database:
-#    container_name: codimd_db
 #    image: postgres:14.0-alpine
 #    environment:
 #      - POSTGRES_USER=tracktor
