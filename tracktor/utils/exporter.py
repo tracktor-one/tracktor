@@ -1,9 +1,9 @@
 """
 Module for parsing yaml files in filestructure for import and export them
 """
+import base64
 import os
 from typing import List
-import base64
 
 import yaml
 from sqlmodel import Session
@@ -18,7 +18,10 @@ try:
 except ImportError:
     from yaml import Dumper
 
-async def dump_categories(session: Session) -> List[Category]:
+
+async def dump_categories(
+    session: Session = next(get_sync_session()),
+) -> List[Category]:
     """ "
     Create directories for all categories
     """
@@ -28,11 +31,10 @@ async def dump_categories(session: Session) -> List[Category]:
     return categories
 
 
-async def dump_playlists():
+async def dump_playlists(session: Session = next(get_sync_session())):
     """ "
     Dump all playlists existing into yaml files in the corresponding categories
     """
-    session: Session = next(get_sync_session())
     exported_categories = await dump_categories(session)
     all_playlists = await Playlist.get_all(session)
     for playlist in all_playlists:

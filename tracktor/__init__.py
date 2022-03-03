@@ -6,8 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from tracktor.config import config
 from tracktor.routers import admin, auth, version, v1
+from tracktor.utils.database import get_sync_session
 from tracktor.utils.exporter import dump_playlists
 from tracktor.utils.importer import parse_playlists
+from tracktor.models import User
 
 
 app = FastAPI()
@@ -32,7 +34,15 @@ async def startup():
     """
     Run on application startup
     """
-    await parse_playlists()
+    startup_sync_session = next(get_sync_session())
+    await parse_playlists(session=startup_sync_session)
+    if not await User.get_super_admin(startup_sync_session):
+        await User.create(
+            session=startup_sync_session,
+            name=config.ADMIN_USER,
+            password=config.ADMIN_PASSWORD,
+            admin=True,
+        )
 
 
 @app.on_event("shutdown")

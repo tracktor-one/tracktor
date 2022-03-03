@@ -22,7 +22,9 @@ except ImportError:
     from yaml import Loader
 
 
-async def parse_categories(session: Session) -> Dict[str, Category]:
+async def parse_categories(
+    session: Session = next(get_sync_session()),
+) -> Dict[str, Category]:
     """
     Parse directory structure to get directories
     """
@@ -44,12 +46,13 @@ async def parse_categories(session: Session) -> Dict[str, Category]:
     return import_categories
 
 
-async def parse_playlists() -> List[Playlist]:
+async def parse_playlists(
+    session: Session = next(get_sync_session()),
+) -> List[Playlist]:
     """
     Parse all yaml files in the given path, match them to categories and import them
     """
     playlists = []
-    session: Session = next(get_sync_session())
     import_categories = await parse_categories(session)
     for category_name, category in import_categories.items():
         category_path = os.path.join(config.PLAYLIST_PATH, category_name)

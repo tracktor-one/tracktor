@@ -108,9 +108,7 @@ class User(UserResponse, UserCreate, table=True):
         await session.commit()
 
     @staticmethod
-    async def create(
-        session: AsyncSession, name: str, password="", admin=False
-    ) -> "User":
+    async def create(session: Session, name: str, password="", admin=False) -> "User":
         """
         Creates a new user and saves it to the database
         """
@@ -120,8 +118,12 @@ class User(UserResponse, UserCreate, table=True):
             admin=admin,
         )
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        if isinstance(session, AsyncSession):
+            await session.commit()
+            await session.refresh(user)
+        else:
+            session.commit()
+            session.refresh(user)
         return user
 
     @staticmethod
@@ -156,12 +158,18 @@ class User(UserResponse, UserCreate, table=True):
         )
 
     @staticmethod
-    async def get_super_admin(session: AsyncSession):
+    async def get_super_admin(session: Session):
         """
         Returns the admin user with id 1
         """
         return (
-            (await session.execute(select(User).where(User.id == 1))).scalars().first()
+            (
+                await session.execute(select(User).where(User.id == 1))
+                if isinstance(session, AsyncSession)
+                else session.execute(select(User).where(User.id == 1))
+            )
+            .scalars()
+            .first()
         )
 
 
@@ -247,20 +255,15 @@ class Image(ImageBase, table=True):
 
     @staticmethod
     async def get_by_entity_id(
-            entity_id: str, session: AsyncSession
+        entity_id: str, session: AsyncSession
     ) -> Optional["Image"]:
         """
         Returns an image with the given entity_id
         """
         return (
-            (
-                await session.execute(
-                    select(Image)
-                        .where(Image.entity_id == entity_id)
-                )
-            )
-                .scalars()
-                .first()
+            (await session.execute(select(Image).where(Image.entity_id == entity_id)))
+            .scalars()
+            .first()
         )
 
 
