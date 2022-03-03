@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tracktor.models import ItemResponse, Item
 from tracktor.utils.database import get_session
 
-router = APIRouter(prefix="/tracks")
+router = APIRouter(prefix="/track")
 
 
 @router.get("/", response_model=List[ItemResponse])

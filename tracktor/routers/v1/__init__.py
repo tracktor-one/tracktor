@@ -8,8 +8,8 @@ from fastapi import APIRouter
 
 from tracktor.routers.v1.category import router as category_router
 from tracktor.routers.v1.playlist import router as playlist_router
-from tracktor.routers.v1.tracks import router as tracks_router
-from tracktor.routers.v1.images import router as images_router
+from tracktor.routers.v1.track import router as tracks_router
+from tracktor.routers.v1.image import router as images_router
 
 router = APIRouter(prefix="/v1", tags=["v1"])
 

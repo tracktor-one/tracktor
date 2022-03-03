@@ -13,7 +13,7 @@ from tracktor.error import ItemNotFoundException
 from tracktor.models import Image
 from tracktor.utils.database import get_session
 
-router = APIRouter(prefix="/images")
+router = APIRouter(prefix="/image")
 
 
 @router.get("/{image_id}")
